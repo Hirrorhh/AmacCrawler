@@ -1,0 +1,271 @@
+# -*- coding: utf-8 -*-
+import re
+import scrapy,sys,json,random,datetime,time
+from bs4 import BeautifulSoup
+from scrapy.http import Request
+
+from AmacCrawler import settings
+from AmacCrawler.items import AmacManagerItem,AmacManagerDetailItem,FundItem,FundAccountItem
+
+
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
+
+class Myspider(scrapy.Spider):
+    name = 'amac'
+    allowed_domains = ['amac.org.cn']
+    bash_url = 'http://www.amac.org.cn/'
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36',
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'Accept-Encoding': 'gzip, deflate',
+        'Content-Type': 'application/json',
+    }
+
+    def __init__(self, name=None, **kwargs):
+        super(Myspider, self).__init__(name=None, **kwargs)
+    #爬虫开始执行入口
+    def start_requests(self):
+        #爬取管理人信息
+        yield self.get_manager(page=0)
+        #爬取管理人详情信息(ing)
+        #yield self.get_manager_detail(page=0)
+        #爬取私募基金数据信息
+        #yield self.get_fund(page=0)
+        #爬取基金专户产品公示
+        #yield self.get_fund_acount(page=0)
+
+    def get_province(self):
+        url = 'http://gs.amac.org.cn/amac-infodisc/api/pof/manager/register-address-agg/province'
+        return Request(url, headers=self.headers, callback=self.cb_get_province)
+
+    def cb_get_province(self, response):
+        datas = json.loads(response.body)
+        if datas:
+            pass
+
+    def get_manager(self, page):
+        url = settings.AMAC_MANAGER_URL + '?rand=' + str(random.random()) + '&page=' + str(page) + '&size=100';
+        value = {}
+        return scrapy.FormRequest(url=url, headers=self.headers, method='POST', body=json.dumps(value), callback=self.cb_get_manager, meta={'page':page})
+
+    def cb_get_manager(self, response):
+        datas = json.loads(response.body)
+        page = response.meta['page']
+        print("now page = %s" % page)
+        if datas:
+            if page >= datas['totalPages']:
+                return
+            for content in datas['content']:
+                item = AmacManagerItem()
+                item['id'] = content['id']
+                item['managerName'] = content['managerName']
+                item['artificialPersonName'] = content['artificialPersonName']
+                item['registerNo'] = content['registerNo']
+                item['establishDate'] = content['establishDate']
+                item['managerHasProduct'] = content['managerHasProduct']
+                item['url'] = content['url']
+                item['registerDate'] = content['registerDate']
+                item['registerAddress'] = content['registerAddress']
+                item['registerProvince'] = content['registerProvince']
+                item['registerCity'] = content['registerCity']
+                item['regAdrAgg'] = content['regAdrAgg']
+                item['fundCount'] = content['fundCount']
+                item['fundScale'] = content['fundScale']
+                item['paidInCapital'] = content['paidInCapital']
+                item['subscribedCapital'] = content['subscribedCapital']
+                item['hasSpecialTips'] = content['hasSpecialTips']
+                item['inBlacklist'] = content['inBlacklist']
+                item['hasCreditTips'] = content['hasCreditTips']
+                item['regCoordinate'] = content['regCoordinate']
+                item['officeCoordinate'] = content['officeCoordinate']
+                item['officeAddress'] = content['officeAddress']
+                item['officeProvince'] = content['officeProvince']
+                item['officeCity'] = content['officeCity']
+                item['primaryInvestType'] = content['primaryInvestType']
+                if item['id'] is not None:
+                    yield self.get_manager_detail(item);
+                yield item
+
+            yield self.get_manager(page=page+1)
+
+    def get_manager_detail(self, item):
+        url = settings.AMAC_MANAGER_DETAIL_URL +  item['id'] + '.html';
+
+        #url = 'http://gs.amac.org.cn/amac-infodisc/res/pof/manager/101000001709.html';
+        value = {}
+        return scrapy.FormRequest(url=url,meta={'manager':item}, callback=self.cb_get_manager_detail)
+
+    def cb_get_manager_detail(self, response):
+
+        item = AmacManagerDetailItem()
+        td_jg = response.xpath("/html/body/div[1]/div[2]/div/table/tbody/tr[13]/td[4]/a/text()").extract()
+        td_enc = response.xpath("//html/body/div[1]/div[2]/div/table/tbody/tr[4]/td[2]/text()").extract()
+       # td_lowyer = response.xpath("/html/body/div[1]/div[2]/div/table/tbody/tr[17]/td[2]/text()").extract()
+
+        if len(td_enc):
+            item['managerNameE'] = td_enc[0].strip()
+            index_start = 5
+        else:
+            item['managerNameE'] = None
+            index_start = 4
+        if len(td_jg):
+            item['orgUrl'] = td_jg[0]
+            index_hy = index_start+16
+        else:
+            item['orgUrl'] = None
+            index_hy = index_start+15
+
+
+
+        td_table = response.xpath("//div[@class='g-container']/div[@class='g-body']/div[@class='m-manager-list m-list-details']/table[@class='table table-center table-info']/tbody/tr").extract()
+        #td_gg = response.xpath("//td[@class='td-content']/table[1][@class='table table-center table-noborder']/tbody[2]/tr/td/text()").extract()
+        for td in  td_table:
+            re.sub("</?a[^>]*>","",td)
+        desc = ",".join(td_table).replace("\r", "").replace("%", "").replace("\n","")
+        self.getDate(u'组织机构代码',desc)
+        td_gg = response.xpath("///html/body/div[1]/div[2]/div/table/tbody/tr[23]/td[2]/table[1]/tbody/tr/td/text()").extract()
+        zb_type = response.xpath("//html/body/div[1]/div[2]/div/table/tbody/tr[10]/td[1]/text()").extract()[0]
+
+        manager = response.meta['manager']
+        # item['id'] =  content['id']
+        item['managerId'] = manager['id']
+        item['managerNameC'] =  manager['managerName']
+        item['orgCode'] = td_table[index_start+2].strip()
+        item['registerAddress'] = td_table[index_start+5].strip()
+        item['officeAddress'] = td_table[index_start+6].strip()
+        if '美元' in zb_type:
+            item['registerCapital'] = None
+            item['paidCapital'] = None
+            item['registerCapitalUsd'] = td_table[index_start+7].strip().replace(",", "")
+            item['paidCapitalUsd'] = td_table[index_start+8].strip().replace(",", "")
+        else:
+            item['registerCapital'] = td_table[index_start+7].strip().replace(",", "")
+            item['paidCapital'] = td_table[index_start+8].strip().replace(",", "")
+            item['registerCapitalUsd'] = None
+            item['paidCapitalUsd'] = None
+
+        item['paidCapitalRatio'] = td_table[index_start+10].replace("\n", "").replace("\r", "").replace("%", "").replace(" ","")
+        item['legalRepresentative'] =''
+        item['riskControlManaer'] = ''
+        item['generalManager'] = ''
+        if td_gg is not None:
+            for index in range(len(td_gg)):
+                if '法定代表人' in td_gg[index]:
+                    item['legalRepresentative'] =  td_gg[index-1]
+                elif "合规风控" in td_gg[index]:
+                    item['riskControlManaer'] = td_gg[index-1]
+                elif '总经理' in td_gg[index]:
+                    item['generalManager'] = item['generalManager']+ td_gg[index-1]
+        #企业性质
+        item['enterpriseNature'] = td_table[index_start+9].strip()
+        #机构类型
+        item['primaryInvestType'] = td_table[index_start+11].strip()
+        item['employeesNumbe'] = td_table[index_start+13].strip()
+        #item['orgUrl'] = td_table[19]
+
+        if td_table[index_hy] == u'是':
+            item['member'] = 1
+            item['memberType'] = td_table[index_hy + 1].strip()
+            item['joinTime'] = td_table[index_hy + 2].strip()
+        elif td_table[index_hy] == u'否':
+            item['member'] = 0
+            item['memberType'] = None
+            item['joinTime'] = None
+        item['legalOpinion'] = td_table[index_hy+3].strip()
+        item['manageScalaZero'] = manager['fundScale'] == 0
+        item['oneYearManageScalaZero'] = 0 if item['manageScalaZero'] and (datetime.datetime.now()-time.strftime("%Y-%m-%d", time.localtime(manager['establishDate'] / 1000))).days >365 else 1
+        item['handInUnderRegister25'] = item['paidCapital'] != None and item['paidCapital'] < 25
+        item['handInLe100w'] = item['paidCapital'] != None and item['paidCapital'] < 100
+        #未匹配的的字段初始化
+        item['otherBusinessApplications'] = None
+        item['lawOffice'] = None
+        item['lawyer'] = None
+        item['fundScale1'] = 0
+        item['fundScale2'] = 0
+        item['fundScale3'] = 0
+        item['fundScale4'] = 0
+        item['fundScale5'] = 0
+        item['faithInfo1'] = 0
+        item['faithInfo2'] = 0
+        item['faithInfo3'] = 0
+        item['faithInfo4'] = 0
+        item['faithInfo5'] = 0
+        item['faithInfo6'] = 0
+        item['noQualifications'] = None
+        item['createTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        item['updateTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        yield item
+
+
+
+    def get_fund(self,page):
+        url = settings.AMAC_FUND_URL + '?rand=' + str(random.random()) + '&page=' + str(page) + '&size=100';
+        value = {}
+        return scrapy.FormRequest(url=url, headers=self.headers, method='POST', body=json.dumps(value),
+                                  callback=self.cb_get_fund, meta={'page': page})
+
+    def cb_get_fund(self,response):
+        datas = json.loads(response.body)
+        page = response.meta['page']
+        print("now page = %s" % page)
+        if datas:
+            if page >= datas['totalPages']:
+                return
+            for content in datas['content']:
+                item = FundItem()
+                item['fundId'] = content['id']
+                item['fundName'] = content['fundName']
+                item['managerName'] = content['managerName']
+                item['establishDate'] =  time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(content['establishDate']/1000.0))
+                item['putOnRecordDate'] = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(content['putOnRecordDate']/1000.0))
+                item['lastQuarterUpdate'] = content['lastQuarterUpdate']
+                item['containClassification'] = "分级" in content['fundName']
+                item['containStructured'] = "结构化" in content['fundName']
+                item['url'] = content['url']
+                item['createTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                item['updateTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                print item
+                yield item
+
+            yield self.get_fund(page=page + 1)
+
+    def get_fund_acount(self, page):
+        url = settings.AMAC_FUND_ACCOUNT_URL + '?rand=' + str(random.random()) + '&page=' + str(page) + '&size=100';
+        value = {}
+        return scrapy.FormRequest(url=url, headers=self.headers, method='POST', body=json.dumps(value),
+                                  callback=self.cb_get_fund_acount, meta={'page': page})
+
+    def cb_get_fund_acount(self,response):
+        datas = json.loads(response.body)
+        page = response.meta['page']
+        print("now page = %s" % page)
+        if datas:
+            if page >= datas['totalPages']:
+                return
+            for content in datas['content']:
+                item = FundAccountItem()
+                item['fundAccountId'] = content['id']
+                item['name'] = content['name']
+                item['manager'] = content['manager']
+                item['type'] = content['type']
+                item['registerCode'] = content['registerCode']
+                item['registerDate'] =time.strftime("%Y-%m-%d %H:%M:%S",
+                                                      time.localtime(content['registerDate'] / 1000.0))
+                if content['type'] is None or content['type'] == "一对多":
+                    item['url'] = content['id']+".html"
+                item['createTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                item['updateTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                print item
+                yield item
+
+            yield self.get_fund_acount(page=page + 1)
+
+    def trim_str(self):
+        self
+
+    def getDate(self,key,result):
+        pattern = re.compile(key + ":?</t[dr]>[^>]*>([^<]+)")
+        m = pattern.findall(result)
+        print m
