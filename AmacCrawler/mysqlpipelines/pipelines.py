@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import datetime
 import time
-from AmacCrawler.items import AmacManagerItem, AmacManagerDetailItem,FundItem,FundAccountItem,AmacManagerDetailItem
+from AmacCrawler.items import AmacManagerItem, AmacManagerDetailItem,FundItem,FundAccountItem,AmacManagerDetailItem,\
+    FundDetailItem
 from AmacCrawler.mysqlpipelines.databases import DataBases
 
 
@@ -48,4 +49,6 @@ class AmacPipeline(object):
             DataBases.insert_amac_fund(item);
         if isinstance(item,FundAccountItem ):
             DataBases.insert_fund_account(item);
+        if isinstance(item,FundDetailItem):
+            DataBases.insert_fund_detail(item);
 

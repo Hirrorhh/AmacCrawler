@@ -175,3 +175,39 @@ class DataBases:
             logging.info('str(e):\t\t', str(e))
             logging.info('traceback.print_exc():', traceback.print_exc())
 
+    @classmethod
+    def insert_fund_detail(cls, item):
+        insert_sql='INSERT INTO fund_detail (fund_id, fund_no, establish_date, put_on_record_date, ' \
+                   'put_on_record_phase, fund_type, currency, manager_type, trustee_name, main_investment, ' \
+                   'working_state, last_updated, special_note, information_disclosure, create_timestamp, update_timestamp) ' \
+                   'VALUES ' \
+                   '(%(fund_id)s, %(fund_no)s, %(establish_date)s, %(put_on_record_date)s, %(put_on_record_phase)s, ' \
+                   '%(fund_type)s, %(currency)s, %(manager_type)s, %(trustee_name)s, %(main_investment)s, ' \
+                   '%(working_state)s, %(last_updated)s, %(special_note)s, %(information_disclosure)s, ' \
+                   '%(create_timestamp)s, %(update_timestamp)s)'
+        value = {
+            'fund_id': item['fundId'],
+            'fund_no': item['fundNo'],
+            'establish_date': item['establishDate'],
+            'put_on_record_date': item['putOnRecordDate'],
+            'put_on_record_phase': item['putOnRecordPhase'],
+            'fund_type': item['fundType'],
+            'currency': item['currency'],
+            'manager_type': item['managerType'],
+            'trustee_name': item['trusteeName'],
+            'main_investment': item['mainInvestment'],
+            'working_state': item['workingState'],
+            'last_updated': item['lastUpdated'],
+            'special_note': item['specialNote'],
+            'information_disclosure': item['informationDisclosure'],
+            'create_timestamp': item['createTimestamp'],
+            'update_timestamp': item['updateTimestamp']
+         }
+        try:
+            mysql_cursor.execute(insert_sql, value)
+            mysql_connector.commit()
+        except Exception, e:
+            logging.info('insert_amac_fund: 爬取-插入基金详情页面出错')
+            logging.info('str(e):\t\t', str(e))
+            logging.info('traceback.print_exc():', traceback.print_exc())
+

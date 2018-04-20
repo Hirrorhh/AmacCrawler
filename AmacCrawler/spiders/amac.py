@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from scrapy.http import Request
 
 from AmacCrawler import settings
-from AmacCrawler.items import AmacManagerItem,AmacManagerDetailItem,FundItem,FundAccountItem
+from AmacCrawler.items import AmacManagerItem,AmacManagerDetailItem,FundItem,FundAccountItem,FundDetailItem
 
 
 reload(sys)
@@ -28,10 +28,9 @@ class Myspider(scrapy.Spider):
     #爬虫开始执行入口
     def start_requests(self):
         #爬取管理人信息(回调函数中爬取个人详情)
-        yield self.get_manager(page=0)
-
-        #爬取私募基金数据信息
-        #yield self.get_fund(page=0)
+        #yield self.get_manager(page=0)
+        #爬取私募基金数据信息(回调函数中爬取基金详情)
+        yield self.get_fund(page=0)
         #爬取基金专户产品公示
         #yield self.get_fund_acount(page=0)
 
@@ -169,8 +168,6 @@ class Myspider(scrapy.Spider):
         item['updateTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         yield item
 
-
-
     def get_fund(self,page):
         url = settings.AMAC_FUND_URL + '?rand=' + str(random.random()) + '&page=' + str(page) + '&size=100';
         value = {}
@@ -189,7 +186,11 @@ class Myspider(scrapy.Spider):
                 item['fundId'] = content['id']
                 item['fundName'] = content['fundName']
                 item['managerName'] = content['managerName']
-                item['establishDate'] =  time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(content['establishDate']/1000.0))
+                establishDate= content['establishDate']
+                if establishDate==None or establishDate=='':
+                    item['establishDate']=None
+                else:
+                    item['establishDate'] =  time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(establishDate/1000.0))
                 item['putOnRecordDate'] = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(content['putOnRecordDate']/1000.0))
                 item['lastQuarterUpdate'] = content['lastQuarterUpdate']
                 item['containClassification'] = "分级" in content['fundName']
@@ -197,9 +198,63 @@ class Myspider(scrapy.Spider):
                 item['url'] = content['url']
                 item['createTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 item['updateTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                if item['fundId'] is not None:
+                    yield self.get_fund_detail(item)
                 yield item
 
             yield self.get_fund(page=page + 1)
+
+    def get_fund_detail(self,item):
+        url = settings.AMAC_FUND_DETAIL_URL + item['url']
+
+        # url = 'http://gs.amac.org.cn/amac-infodisc/res/pof/manager/101000001709.html';
+        value = {}
+        return scrapy.FormRequest(url=url, meta={'fund': item}, callback=self.cb_get_fund_detail)
+
+    def cb_get_fund_detail(self,response):
+
+        bs = BeautifulSoup(response.body,'lxml',from_encoding='utf-8')
+        item = FundDetailItem()
+        fund = response.meta['fund']
+        contents = bs.find_all('td', class_="td-content")
+        item['fundId']=fund['fundId']
+        item['fundNo']=contents[1].get_text()
+        item['establishDate']=fund['establishDate']
+        item['putOnRecordDate']=fund['putOnRecordDate']
+        item['putOnRecordPhase']=contents[4].get_text() == u'暂行办法实施后成立的基金'
+        item['fundType']=contents[5].get_text()
+        item['currency']=contents[6].get_text()
+
+        mType = contents[8].get_text()
+        if mType ==u'受托管理':
+            item['managerType'] = 1
+        elif mType ==u'自我管理':
+            item['managerType'] = 2
+        elif mType ==u'顾问管理':
+            item['managerType'] = 3
+
+        item['trusteeName']=contents[7].get_text()
+        item['mainInvestment']=None
+        workingState=contents[10].get_text()
+        #print workingState
+        if workingState ==u'正在运作':
+            item['workingState'] = 1
+        elif workingState ==u'正常清算':
+            item['workingState'] = 2
+        elif workingState ==u'提前清算':
+            item['workingState'] = 3
+        elif workingState ==u'延期清算':
+            item['workingState'] = 4
+        elif workingState ==u'投顾协议已终止':
+            item['workingState'] = 5
+
+        item['lastUpdated']=contents[11].get_text() if contents[11].get_text()!='' else None
+        item['specialNote']=contents[12].get_text()
+        item['informationDisclosure']=contents[13].get_text()+contents[14].get_text()+contents[15].get_text()+contents[16].get_text()
+        item['createTimestamp']= datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        item['updateTimestamp']= datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        yield item
 
     def get_fund_acount(self, page):
         url = settings.AMAC_FUND_ACCOUNT_URL + '?rand=' + str(random.random()) + '&page=' + str(page) + '&size=100';
