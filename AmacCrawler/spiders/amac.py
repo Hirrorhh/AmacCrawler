@@ -5,7 +5,8 @@ from bs4 import BeautifulSoup
 from scrapy.http import Request
 
 from AmacCrawler import settings
-from AmacCrawler.items import AmacManagerItem,AmacManagerDetailItem,FundItem,FundAccountItem,FundDetailItem
+from AmacCrawler.items import AmacManagerItem,AmacManagerDetailItem,FundItem,FundAccountItem,FundDetailItem,\
+    FundAccountDetailItem,HmdItem
 
 
 reload(sys)
@@ -19,7 +20,6 @@ class Myspider(scrapy.Spider):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36',
         'Accept': 'application/json, text/javascript, */*; q=0.01',
-        'Accept-Encoding': 'gzip, deflate',
         'Content-Type': 'application/json',
     }
 
@@ -30,9 +30,11 @@ class Myspider(scrapy.Spider):
         #爬取管理人信息(回调函数中爬取个人详情)
         #yield self.get_manager(page=0)
         #爬取私募基金数据信息(回调函数中爬取基金详情)
-        yield self.get_fund(page=0)
+        #yield self.get_fund(page=0)
         #爬取基金专户产品公示
         #yield self.get_fund_acount(page=0)
+        #私募基金管理人从业黑名单
+        yield self.get_hmd()
 
     def get_province(self):
         url = 'http://gs.amac.org.cn/amac-infodisc/api/pof/manager/register-address-agg/province'
@@ -83,7 +85,7 @@ class Myspider(scrapy.Spider):
                 item['officeCity'] = content['officeCity']
                 item['primaryInvestType'] = content['primaryInvestType']
                 if item['id'] is not None:
-                    yield self.get_manager_detail(item);
+                    yield self.get_manager_detail(item)
                 yield item
 
             yield self.get_manager(page=page+1)
@@ -280,6 +282,8 @@ class Myspider(scrapy.Spider):
                                                       time.localtime(content['registerDate'] / 1000.0))
                 if content['type'] is None or content['type'] == "一对多":
                     item['url'] = content['id']+".html"
+                    yield self.get_fund_account_detail(item)
+
                 item['createTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 item['updateTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 #print item
@@ -287,8 +291,91 @@ class Myspider(scrapy.Spider):
 
             yield self.get_fund_acount(page=page + 1)
 
-    def trim_str(self):
-        self
+    def get_fund_account_detail(self, item):
+        url = settings.AMAC_FUND_ACCOUNT_DETAIL_URL + item['url']
+
+        # url = 'http://gs.amac.org.cn/amac-infodisc/res/pof/manager/101000001709.html';
+        value = {}
+        return scrapy.FormRequest(url=url, meta={'fund_account': item}, callback=self.cb_get_fund_account_detail)
+
+    def cb_get_fund_account_detail(self,response):
+        bs = BeautifulSoup(response.body, 'lxml', from_encoding='utf-8')
+        contents = bs.find_all('td', class_="td-content")
+        item = FundAccountDetailItem()
+        fund_account = response.meta['fund_account']
+        item['fundAccountId'] = fund_account['fundAccountId']
+        item['registerCode']= fund_account['registerCode']
+        item['manager']= fund_account['manager']
+        item['trusteeName']=contents[2].get_text()
+        item['registerDate']= fund_account['registerDate']
+        item['contractPeriod']=contents[5].get_text()
+        item['initialScale']=self.formatDate(contents[6].get_text())
+        item['classification']=contents[6].get_text() ==u'是'
+        item['investorsNumber']=contents[8].get_text()
+        item['otherProductType']=self.getData(u'非专项资产管理计划产品类型',response.body) if self.getData(u'非专项资产管理计划产品类型',response.body) != None else None
+        item['createTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        item['updateTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        yield item
+
+    def get_hmd(self):
+        url = settings.AMAC_HMD_URL
+
+        # url = 'http://gs.amac.org.cn/amac-infodisc/res/pof/manager/101000001709.html';
+        value = {}
+        return scrapy.FormRequest(url=url,  callback=self.cb_get_hmd)
+
+    def get_hmd_detail(self,item):
+        url = settings.AMAC_HMD_URL + item
+
+        # url = 'http://gs.amac.org.cn/amac-infodisc/res/pof/manager/101000001709.html';
+        #value = {}
+        return scrapy.FormRequest(url=url, callback=self.cb_get_hmd_detail)
+
+    def cb_get_hmd(self,response):
+        bs = BeautifulSoup(response.body, 'lxml', from_encoding='utf-8')
+        contents = bs.select('div[class="newsName"] a')
+        for content in contents:
+            url = content['href'].split('/')[-1]
+            if url is not None:
+                yield self.get_hmd_detail(url)
+
+    def cb_get_hmd_detail(self,response):
+        bs = BeautifulSoup(response.body, 'html.parser', from_encoding='utf-8')
+        item = HmdItem()
+        contents_tr = bs.select('tbody tr td')
+        contents_td = bs.select('tbody tr')
+        if contents_td is not None and contents_tr is not None:
+            length = len(contents_tr)/len(contents_td)
+            #print(contents_td)
+            t = length
+            if length == 3:
+                for index in range(len(contents_td)-1):
+                    if t < len(contents_tr):
+                        item['name'] = self.formatDate(contents_tr[t+1].get_text())
+                        item['disciplinary'] =self.formatDate( contents_tr[t+2].get_text())
+                        time_str = self.formatDate(contents_tr[t].get_text()).replace("\t", "")
+                        time_1 = time.strptime(time_str, '%Y/%m/%d').strftime('%Y-%m-%d')
+                        time_2 = time.strftime("%Y-%m-%d", time_1)
+                        item['revocationTime'] = time_2
+                        item['createTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        item['updateTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        yield item
+                        t= (index+2)*length
+            elif length == 4:
+                for index in range(len(contents_td)-1):
+                    if t < len(contents_tr):
+                        item['name'] = self.formatDate(contents_tr[t+1].get_text()).replace("\t","")
+                        item['disciplinary'] =self.formatDate( contents_tr[t+3].get_text()).replace("\t","")
+                        item['organization'] =self.formatDate( contents_tr[t+2].get_text()).replace("\t","")
+                        time_str =(self.formatDate(contents_tr[t].get_text()).replace("\t", ""))
+                        time_1 =time.strptime(time_str, '%Y-%m-%d %H:%M:%S')
+                        time_2 = time.strftime("%Y-%m-%d",time_1)
+                        item['revocationTime'] = time_2
+                        item['createTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        item['updateTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        yield item
+                        t= (index+2)*length
+
 
     def getData(self,key,result):
         pattern = re.compile(key + ":?</t[dr]>[^>]*>([^<]+)")
@@ -302,5 +389,11 @@ class Myspider(scrapy.Spider):
         m = pattern.findall(result)
         if len(m):
             return m[0]
-        else:
             return None
+        else:
+            pass
+    def formatDate(self,data):
+        return data.replace("\r", "").replace(" ", "").replace("\n","")
+
+
+

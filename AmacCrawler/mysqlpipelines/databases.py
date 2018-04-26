@@ -120,7 +120,7 @@ class DataBases:
     def insert_amac_fund(cls, item):
 
         insert_sql ='INSERT INTO fund ' \
-                    '( fund_id, fund_name, manager_name, establish_date, put_on_record_date, last_quarter_update, ' \
+                    '(fund_id, fund_name, manager_name, establish_date, put_on_record_date, last_quarter_update, ' \
                     'contain_classification, contain_structured, url, create_timestamp, update_timestamp) ' \
                     'VALUES (%(fund_id)s, %(fund_name)s, %(manager_name)s, %(establish_date)s, ' \
                     '%(put_on_record_date)s, %(last_quarter_update)s, %(contain_classification)s, ' \
@@ -145,7 +145,7 @@ class DataBases:
         except Exception, e:
             logging.info('insert_amac_fund: 插入基金出错')
             logging.info('str(e):\t\t', str(e))
-            logging.info( 'traceback.print_exc():', traceback.print_exc())
+            logging.info('traceback.print_exc():', traceback.print_exc())
 
     @classmethod
     def insert_fund_account(cls, item):
@@ -211,3 +211,55 @@ class DataBases:
             logging.info('str(e):\t\t', str(e))
             logging.info('traceback.print_exc():', traceback.print_exc())
 
+    @classmethod
+    def insert_fund_account_detail(cls, item):
+        insert_sql = 'INSERT INTO fund_account_detail (fund_account_id, register_code, manager, trustee_name, ' \
+                     'register_date, contract_period, initial_scale, classification, investors_number, ' \
+                     'other_product_type, create_timestamp, update_timestamp) ' \
+                     'VALUES ' \
+                     '(%(fund_account_id)s, %(register_code)s, %(manager)s, %(trustee_name)s, %(register_date)s, ' \
+                     '%(contract_period)s, %(initial_scale)s, %(classification)s, %(investors_number)s, ' \
+                     '%(other_product_type)s, %(create_timestamp)s, %(update_timestamp)s)'
+        value = {
+            'fund_account_id': item['fundAccountId'],
+            'register_code': item['registerCode'],
+            'manager': item['manager'],
+            'trustee_name': item['trusteeName'],
+            'register_date': item['registerDate'],
+            'contract_period': item['contractPeriod'],
+            'initial_scale': item['initialScale'],
+            'classification': item['classification'],
+            'investors_number': item['investorsNumber'],
+            'other_product_type': item['otherProductType'],
+            'create_timestamp': item['createTimestamp'],
+            'update_timestamp': item['updateTimestamp']
+        }
+        try:
+            mysql_cursor.execute(insert_sql, value)
+            mysql_connector.commit()
+        except Exception, e:
+            logging.info('insert_fund_account_detail: 爬取-插入基金账户详情页面出错')
+            logging.info('str(e):\t\t', str(e))
+            logging.info('traceback.print_exc():', traceback.print_exc())
+
+    @classmethod
+    def insert_hmd_item(cls, item):
+        insert_sql = 'INSERT INTO hmd ( name, organization, disciplinary, revocation_time, create_timestamp, update_timestamp) ' \
+                     'VALUES ( %(name)s, %(organization)s, %(disciplinary)s, %(revocation_time)s, ' \
+                     '%(create_timestamp)s, %(update_timestamp)s)'
+        value = {
+            'name' : item['name'],
+            'organization' : item['organization'],
+            'disciplinary' : item['disciplinary'],
+            'revocation_time' : item['revocationTime'],
+            'create_timestamp' : item['createTimestamp'],
+            'update_timestamp' : item['updateTimestamp']
+
+        }
+        try:
+            mysql_cursor.execute(insert_sql, value)
+            mysql_connector.commit()
+        except Exception, e:
+            logging.info('insert_hmd_item: 爬取-黑名单出错')
+            logging.info('str(e):\t\t', str(e))
+            logging.info('traceback.print_exc():', traceback.print_exc())
