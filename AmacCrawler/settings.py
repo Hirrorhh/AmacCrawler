@@ -120,5 +120,8 @@ AMAC_ZQ_DETAIL_URL = 'http://ba.amac.org.cn/pages/amacWeb/user!search.action'
 AMAC_QH_URL = 'http://ba.amac.org.cn/pages/amacWeb/user!list.action'
 #期货详情页
 AMAC_QH_DETAIL_URL = 'http://ba.amac.org.cn/pages/amacWeb/user!search.action'
+LOG_LEVEL= 'DEBUG'
+
+LOG_FILE ='log.txt'
 
 

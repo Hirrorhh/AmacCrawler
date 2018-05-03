@@ -62,7 +62,7 @@ class Myspider(scrapy.Spider):
     def cb_get_manager(self, response):
         datas = json.loads(response.body)
         page = response.meta['page']
-        print("now page = %s" % page)
+        print("cb_get_manager :now page = %s" % page)
         if datas:
             if page >= datas['totalPages']:
                 return
@@ -188,7 +188,7 @@ class Myspider(scrapy.Spider):
     def cb_get_fund(self,response):
         datas = json.loads(response.body)
         page = response.meta['page']
-        print("now page = %s" % page)
+        print("cb_get_fund : now page = %s" % page)
         if datas:
             if page >= datas['totalPages']:
                 return
@@ -247,7 +247,7 @@ class Myspider(scrapy.Spider):
         item['trusteeName']=contents[7].get_text()
         item['mainInvestment']=None
         workingState=contents[11].get_text()
-        print workingState
+        #print workingState
         if workingState ==u'正在运作':
             item['workingState'] = 1
         elif workingState ==u'正常清算':
@@ -259,8 +259,8 @@ class Myspider(scrapy.Spider):
         elif workingState ==u'投顾协议已终止':
             item['workingState'] = 5
 
-        item['lastUpdated']=contents[12].get_text() if contents[11].get_text()!='' else None
-        item['specialNote']=contents[12].get_text()
+        item['lastUpdated']=contents[12].get_text() if contents[12].get_text()!='' else None
+        item['specialNote']=contents[13].get_text()
         item['informationDisclosure']=contents[13].get_text()+contents[14].get_text()+contents[15].get_text()+contents[16].get_text()
         item['createTimestamp']= datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         item['updateTimestamp']= datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -276,7 +276,7 @@ class Myspider(scrapy.Spider):
     def cb_get_fund_acount(self,response):
         datas = json.loads(response.body)
         page = response.meta['page']
-        print("now page = %s" % page)
+        print("cb_get_fund_acount: now page = %s" % page)
         if datas:
             if page >= datas['totalPages']:
                 return
@@ -317,6 +317,7 @@ class Myspider(scrapy.Spider):
         item['manager']= fund_account['manager']
         item['trusteeName']=contents[2].get_text()
         item['registerDate']= fund_account['registerDate']
+        #print contents[5].get_text()
         item['contractPeriod']=contents[5].get_text()
         item['initialScale']=self.formatDate(contents[6].get_text())
         item['classification']=contents[6].get_text() ==u'是'
@@ -464,9 +465,9 @@ class Myspider(scrapy.Spider):
     def cb_zq_item(self,response):
         datas = json.loads(response.body)
         page = response.meta['page']
-        print("now page = %s" % page)
+        print("cb_zq_item : now page = %s" % page)
         if datas:
-            if 'false' == datas['hasNext']:
+            if False == datas['hasNext']:
                 return
             for content in datas['result']:
                 item = ZQ()
@@ -488,9 +489,9 @@ class Myspider(scrapy.Spider):
     def cb_qh_item(self,response):
         datas = json.loads(response.body)
         page = response.meta['page']
-        print("now page = %s" % page)
+        print("cb_qh_item : now page = %s" % page)
         if datas:
-            if 'false' == datas['hasNext']:
+            if False == datas['hasNext']:
                 return
             for content in datas['result']:
                 item = QHItem()
