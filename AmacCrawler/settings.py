@@ -112,5 +112,13 @@ AMAC_HMD_URL = 'http://www.amac.org.cn/xxgs/hmd/'
 AMAC_MANAGER_URL = 'http://gs.amac.org.cn/amac-infodisc/api/pof/manager'
 # 私募基金管理人详情
 AMAC_MANAGER_DETAIL_URL = 'http://gs.amac.org.cn/amac-infodisc/res/pof/manager/'
+# 证券
+AMAC_ZQ_URL = 'http://ba.amac.org.cn/pages/amacWeb/user!list.action'
+# 证券详情
+AMAC_ZQ_DETAIL_URL = 'http://ba.amac.org.cn/pages/amacWeb/user!search.action'
+# 期货
+AMAC_QH_URL = 'http://ba.amac.org.cn/pages/amacWeb/user!list.action'
+#期货详情页
+AMAC_QH_DETAIL_URL = 'http://ba.amac.org.cn/pages/amacWeb/user!search.action'
 
 

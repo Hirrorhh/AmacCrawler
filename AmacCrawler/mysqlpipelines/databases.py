@@ -263,3 +263,161 @@ class DataBases:
             logging.info('insert_hmd_item: 爬取-黑名单出错')
             logging.info('str(e):\t\t', str(e))
             logging.info('traceback.print_exc():', traceback.print_exc())
+
+    @classmethod
+    def insert_cxdj_item(cls, item):
+        insert_sql = 'INSERT INTO cxdj ( organization, disciplinary, revocation_date, create_timestamp, update_timestamp) ' \
+                     'VALUES (%(organization)s, %(disciplinary)s, %(revocation_time)s, ' \
+                     '%(create_timestamp)s, %(update_timestamp)s)'
+        value = {
+            'organization' : item['organization'],
+            'disciplinary' : item['disciplinary'],
+            'revocation_time' : item['revocationTime'],
+            'create_timestamp' : item['createTimestamp'],
+            'update_timestamp' : item['updateTimestamp']
+
+        }
+        try:
+            mysql_cursor.execute(insert_sql, value)
+            mysql_connector.commit()
+        except Exception, e:
+            logging.info('insert_cxdj_item: 爬取-撤销登记名单出错')
+            logging.info('str(e):\t\t', str(e))
+            logging.info('traceback.print_exc():', traceback.print_exc())
+
+    @classmethod
+    def insert_cxdj_item(cls, item):
+        insert_sql = 'INSERT INTO cxdj ( organization, disciplinary, revocation_date, create_timestamp, update_timestamp) ' \
+                     'VALUES (%(organization)s, %(disciplinary)s, %(revocation_time)s, ' \
+                     '%(create_timestamp)s, %(update_timestamp)s)'
+        value = {
+            'organization' : item['organization'],
+            'disciplinary' : item['disciplinary'],
+            'revocation_time' : item['revocationTime'],
+            'create_timestamp' : item['createTimestamp'],
+            'update_timestamp' : item['updateTimestamp']
+
+        }
+        try:
+            mysql_cursor.execute(insert_sql, value)
+            mysql_connector.commit()
+        except Exception, e:
+            logging.info('insert_cxdj_item: 爬取-撤销登记名单出错')
+            logging.info('str(e):\t\t', str(e))
+            logging.info('traceback.print_exc():', traceback.print_exc())
+
+    @classmethod
+    def insert_zq_item(cls, item):
+        insert_sql = 'INSERT INTO zq (mpi_id, product_code, product_name, manager_name, create_date,' \
+                     ' contain_classification, contain_structured, create_timestamp, update_timestamp) ' \
+                     'VALUES (%(mpi_id)s, %(product_code)s, %(product_name)s, %(manager_name)s, %(create_date)s, ' \
+                     '%(contain_classification)s, %(contain_structured)s, %(create_timestamp)s, %(update_timestamp)s)'
+        value = {
+            'mpi_id': item['mpiId'],
+            'product_code': item['productCode'],
+            'product_name': item['productName'],
+            'manager_name': item['managerName'],
+            'create_date': item['createDate'],
+            'contain_classification': item['containClassification'],
+            'contain_structured': item['containStructured'],
+            'create_timestamp': item['createTimestamp'],
+            'update_timestamp': item['updateTimestamp']
+
+        }
+        try:
+            mysql_cursor.execute(insert_sql, value)
+            mysql_connector.commit()
+        except Exception, e:
+            logging.info('insert_zq_item: 爬取-证券类名单出错')
+            logging.info('str(e):\t\t', str(e))
+            logging.info('traceback.print_exc():', traceback.print_exc())
+
+    @classmethod
+    def insert_zq_detail_item(cls, item):
+        insert_sql = 'INSERT INTO zq_detail (mpi_id, product_code, manager_name, create_date, expiry_date, ' \
+                     'investmentType, classification, management, establish_scale, ' \
+                     'households_number, trusteeship, sra, create_timestamp, update_timestamp) ' \
+                     'VALUES (%(mpi_id)s, %(product_code)s, %(manager_name)s, %(create_date)s, %(expiry_date)s, ' \
+                     '%(investmentType)s, %(classification)s, %(management)s, %(establish_scale)s, ' \
+                     '%(households_number)s, %(trusteeship)s, %(sra)s, %(create_timestamp)s, %(update_timestamp)s)'
+        value = {
+            'mpi_id': item['mpiId'],
+            'product_code': item['productCode'],
+            'manager_name': item['managerName'],
+            'create_date': item['createDate'],
+            'expiry_date': item['expiryDate'],
+            'investmentType': item['investmentType'],
+            'classification': item['classification'],
+            'management': item['management'],
+            'establish_scale': item['establishScale'],
+            'households_number': item['householdsNumber'],
+            'trusteeship': item['trusteeship'],
+            'sra': item['sra'],
+            'create_timestamp': item['createTimestamp'],
+            'update_timestamp': item['updateTimestamp']
+
+        }
+        try:
+            mysql_cursor.execute(insert_sql, value)
+            mysql_connector.commit()
+        except Exception, e:
+            logging.info('insert_zq_item: 爬取-证券详情出错')
+            logging.info('str(e):\t\t', str(e))
+            logging.info('traceback.print_exc():', traceback.print_exc())
+
+    @classmethod
+    def insert_qh_item(cls, item):
+        insert_sql = 'INSERT INTO qh (mpi_id, mpi_product_code, mpi_name, aoi_name, mpi_create_date, ' \
+                     'contain_classification, contain_structured, create_timestamp, update_timestamp) ' \
+                     'VALUES ' \
+                     '(%(mpi_id)s, %(mpi_product_code)s, %(mpi_name)s, %(aoi_name)s, %(mpi_create_date)s, ' \
+                     '%(contain_classification)s, %(contain_structured)s, %(create_timestamp)s, %(update_timestamp)s)'
+        value = {
+            'mpi_id' : item['mpiId'],
+            'mpi_product_code' : item['mpiProductCode'],
+            'mpi_name' : item['mpiName'],
+            'aoi_name' : item['aoiName'],
+            'mpi_create_date' : item['mpiCreateDate'],
+            'contain_classification' : item['containClassification'],
+            'contain_structured' : item['containStructured'],
+            'create_timestamp' : item['createTimestamp'],
+            'update_timestamp' : item['updateTimestamp']
+
+        }
+        try:
+            mysql_cursor.execute(insert_sql, value)
+            mysql_connector.commit()
+        except Exception, e:
+            logging.info('insert_hq_item: 爬取-证券详情出错')
+            logging.info('str(e):\t\t', str(e))
+            logging.info('traceback.print_exc():', traceback.print_exc())
+
+    @classmethod
+    def insert_qh_detail_item(cls, item):
+        insert_sql = 'INSERT INTO qh_detail(mpi_id, mpi_product_code, aoi_name, trustee_name, mpi_create_date, ' \
+                     'investment_type, raise_scale, structured, principals_number, create_timestamp, update_timestamp) ' \
+                     'VALUES ' \
+                     '(%(mpi_id)s, %(mpi_product_code)s, %(aoi_name)s, %(trustee_name)s, %(mpi_create_date)s, ' \
+                     '%(investment_type)s, %(raise_scale)s, %(structured)s, %(principals_number)s, %(create_timestamp)s,' \
+                     ' %(update_timestamp)s)'
+        value = {
+            'mpi_id': item['mpiId'],
+            'mpi_product_code': item['mpiProductCode'],
+            'aoi_name': item['aoiName'],
+            'trustee_name': item['trusteeName'],
+            'mpi_create_date': item['mpiCreateDate'],
+            'investment_type': item['investmentType'],
+            'raise_scale': item['raiseScale'],
+            'structured': item['structured'],
+            'principals_number': item['principalsNumber'],
+            'create_timestamp': item['createTimestamp'],
+            'update_timestamp': item['updateTimestamp']
+
+        }
+        try:
+            mysql_cursor.execute(insert_sql, value)
+            mysql_connector.commit()
+        except Exception, e:
+            logging.info('insert_hq_item: 爬取-期货详情出错')
+            logging.info('str(e):\t\t', str(e))
+            logging.info('traceback.print_exc():', traceback.print_exc())

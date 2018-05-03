@@ -6,7 +6,7 @@ from scrapy.http import Request
 
 from AmacCrawler import settings
 from AmacCrawler.items import AmacManagerItem,AmacManagerDetailItem,FundItem,FundAccountItem,FundDetailItem,\
-    FundAccountDetailItem,HmdItem
+    FundAccountDetailItem,HmdItem,CXDJItem,ZQ,ZQDetailItem,QHItem,QHItemdetail
 
 
 reload(sys)
@@ -22,19 +22,28 @@ class Myspider(scrapy.Spider):
         'Accept': 'application/json, text/javascript, */*; q=0.01',
         'Content-Type': 'application/json',
     }
+    headers_user = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36',
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'Content-Type': 'application/x-www-form-urlencoded',
+    }
 
     def __init__(self, name=None, **kwargs):
         super(Myspider, self).__init__(name=None, **kwargs)
     #爬虫开始执行入口
     def start_requests(self):
         #爬取管理人信息(回调函数中爬取个人详情)
-        #yield self.get_manager(page=0)
+        yield self.get_manager(page=0)
         #爬取私募基金数据信息(回调函数中爬取基金详情)
-        #yield self.get_fund(page=0)
+        yield self.get_fund(page=0)
         #爬取基金专户产品公示
-        #yield self.get_fund_acount(page=0)
+        yield self.get_fund_acount(page=0)
         #私募基金管理人从业黑名单
         yield self.get_hmd()
+        #管理人撤销登记
+        yield self.get_cxdj()
+        yield self.get_zq_item(page=0)
+        yield self.get_qh_item(page=0)
 
     def get_province(self):
         url = 'http://gs.amac.org.cn/amac-infodisc/api/pof/manager/register-address-agg/province'
@@ -237,8 +246,8 @@ class Myspider(scrapy.Spider):
 
         item['trusteeName']=contents[7].get_text()
         item['mainInvestment']=None
-        workingState=contents[10].get_text()
-        #print workingState
+        workingState=contents[11].get_text()
+        print workingState
         if workingState ==u'正在运作':
             item['workingState'] = 1
         elif workingState ==u'正常清算':
@@ -250,7 +259,7 @@ class Myspider(scrapy.Spider):
         elif workingState ==u'投顾协议已终止':
             item['workingState'] = 5
 
-        item['lastUpdated']=contents[11].get_text() if contents[11].get_text()!='' else None
+        item['lastUpdated']=contents[12].get_text() if contents[11].get_text()!='' else None
         item['specialNote']=contents[12].get_text()
         item['informationDisclosure']=contents[13].get_text()+contents[14].get_text()+contents[15].get_text()+contents[16].get_text()
         item['createTimestamp']= datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -351,10 +360,12 @@ class Myspider(scrapy.Spider):
             if length == 3:
                 for index in range(len(contents_td)-1):
                     if t < len(contents_tr):
+                        item['organization'] =None
                         item['name'] = self.formatDate(contents_tr[t+1].get_text())
                         item['disciplinary'] =self.formatDate( contents_tr[t+2].get_text())
                         time_str = self.formatDate(contents_tr[t].get_text()).replace("\t", "")
-                        time_1 = time.strptime(time_str, '%Y/%m/%d').strftime('%Y-%m-%d')
+                        time_str = "".join(time_str.split())
+                        time_1 = time.strptime(time_str, '%Y/%m/%d')
                         time_2 = time.strftime("%Y-%m-%d", time_1)
                         item['revocationTime'] = time_2
                         item['createTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -368,7 +379,10 @@ class Myspider(scrapy.Spider):
                         item['disciplinary'] =self.formatDate( contents_tr[t+3].get_text()).replace("\t","")
                         item['organization'] =self.formatDate( contents_tr[t+2].get_text()).replace("\t","")
                         time_str =(self.formatDate(contents_tr[t].get_text()).replace("\t", ""))
-                        time_1 =time.strptime(time_str, '%Y-%m-%d %H:%M:%S')
+                        #print time_str
+                        time_str1="".join(time_str.split())
+                        #print time_str1
+                        time_1 =time.strptime(time_str1, '%Y/%m/%d')
                         time_2 = time.strftime("%Y-%m-%d",time_1)
                         item['revocationTime'] = time_2
                         item['createTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -376,6 +390,178 @@ class Myspider(scrapy.Spider):
                         yield item
                         t= (index+2)*length
 
+    def get_cxdj(self):
+        url = settings.AMAC_CXDJ_URL
+        value = {}
+        return scrapy.FormRequest(url=url,  callback=self.cb_get_cxdj)
+
+    def cb_get_cxdj(self,response):
+        bs = BeautifulSoup(response.body, 'lxml', from_encoding='utf-8')
+        contents = bs.select('div[class="newsName"] a')
+        for content in contents:
+            url = content['href'].split('/')[-1]
+            if url is not None:
+                yield self.get_cxdj_detail(url)
+
+    def get_cxdj_detail(self,item):
+        url = settings.AMAC_CXDJ_URL + item
+
+        return scrapy.FormRequest(url=url, callback=self.cb_get_cxdj_detail)
+
+    def cb_get_cxdj_detail(self,response):
+        bs = BeautifulSoup(response.body, 'html.parser', from_encoding='utf-8')
+        item = CXDJItem()
+        contents_tr = bs.select('tbody tr td')
+        contents_td = bs.select('tbody tr')
+        if contents_td is not None and contents_tr is not None:
+            length = len(contents_tr) / len(contents_td)
+            # print(contents_td)
+            t = length
+            if length == 3:
+                for index in range(len(contents_td) - 1):
+                    if t < len(contents_tr):
+                        item['organization'] = self.formatDate(contents_tr[t + 1].get_text())
+                        item['disciplinary'] = self.formatDate(contents_tr[t + 2].get_text())
+                        time_str = self.formatDate(contents_tr[t].get_text()).replace("\t", "")
+                        time_str = "".join(time_str.split())
+                        time_1 = time.strptime(time_str, '%Y/%m/%d')
+                        time_2 = time.strftime("%Y-%m-%d", time_1)
+                        item['revocationTime'] = time_2
+                        item['createTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        item['updateTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        yield item
+                        t = (index + 2) * length
+
+    def get_zq_item(self,page):
+        url = settings.AMAC_ZQ_URL + '?page.pageNo=' + str(page) + '&page.pageSize=200&filter_LIKES_CPMC=' \
+                                                                   '&filter_LIKES_GLJG=&filter_LIKES_CPBM=' \
+                                                                   '&filter_GES_SLRQ=&filter_LES_SLRQ=' \
+                                                                   '&page.searchFileName=publicity_web' \
+                                                                   '&page.sqlKey=PAGE_PUBLICITY_WEB' \
+                                                                   '&page.sqlCKey=SIZE_PUBLICITY_WEB' \
+                                                                   '&_search=false' \
+                                                                   '&nd=&page.orderBy=SLRQ&page.order=desc';
+
+        return scrapy.FormRequest(url=url, headers=self.headers_user, method='POST',
+                                  callback=self.cb_zq_item, meta={'page': page})
+
+    def get_qh_item(self,page):
+        url = settings.AMAC_QH_URL + '?page.pageNo=' + str(page) + '&page.pageSize=200' \
+                                                                   '&filter_LIKES_MPI_NAME=' \
+                                                                   '&filter_LIKES_AOI_NAME' \
+                                                                   '&filter_LIKES_MPI_PRODUCT_CODE=' \
+                                                                   '&filter_GES_MPI_CREATE_DATE=' \
+                                                                   '&filter_LES_MPI_CREATE_DATE=' \
+                                                                   '&page.searchFileName=publicity_web' \
+                                                                   '&page.sqlKey=PAGE_QH_PUBLICITY_WEB' \
+                                                                   '&page.sqlCKey=SIZE_QH_PUBLICITY_WEB' \
+                                                                   '&_search=false&nd=1525249057557' \
+                                                                   '&page.orderBy=MPI_CREATE_DATE&page.order=desc'
+
+        return scrapy.FormRequest(url=url, headers=self.headers_user, method='POST',
+                                  callback=self.cb_qh_item, meta={'page': page})
+
+    def cb_zq_item(self,response):
+        datas = json.loads(response.body)
+        page = response.meta['page']
+        print("now page = %s" % page)
+        if datas:
+            if 'false' == datas['hasNext']:
+                return
+            for content in datas['result']:
+                item = ZQ()
+                item['mpiId'] = content['MPI_ID']
+                item['productCode'] = content['CPBM']
+                item['productName'] = content['CPMC']
+                item['managerName'] = content['GLJG']
+                item['createDate'] = content['SLRQ']
+                item['containClassification'] = u'分级' in item['productName']
+                item['containStructured'] = u'结构化' in item['productName']
+                item['createTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                item['updateTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                if item['mpiId'] is not None:
+                    yield self.get_zq_detail(item)
+                yield item
+
+            yield self.get_zq_item(page=page + 1)
+
+    def cb_qh_item(self,response):
+        datas = json.loads(response.body)
+        page = response.meta['page']
+        print("now page = %s" % page)
+        if datas:
+            if 'false' == datas['hasNext']:
+                return
+            for content in datas['result']:
+                item = QHItem()
+                item['mpiId'] = content['MPI_ID']
+                item['mpiProductCode'] = content['MPI_PRODUCT_CODE']
+                item['mpiName'] = content['MPI_NAME']
+                item['aoiName'] = content['AOI_NAME']
+                item['mpiCreateDate'] = content['MPI_CREATE_DATE']
+                item['containClassification'] = u'分级' in item['mpiName']
+                item['containStructured'] = u'结构化' in item['mpiName']
+                item['createTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                item['updateTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                if item['mpiId'] is not None:
+                    yield self.get_qh_detail(item)
+                yield item
+
+            yield self.get_zq_item(page=page + 1)
+
+    def get_zq_detail(self,item):
+        url = settings.AMAC_ZQ_DETAIL_URL + '?filter_EQS_MPI_ID=' + item['mpiId']+'&sqlkey=publicity_web&sqlval=GET_PUBLICITY_WEB_BY_MPI_ID'
+
+        return scrapy.FormRequest(url=url, headers=self.headers_user, method='POST',
+                                  callback=self.cb_get_zq_detail)
+
+    def get_qh_detail(self,item):
+        url = settings.AMAC_QH_DETAIL_URL + '?filter_EQS_MPI_ID=' + item['mpiId']+'&sqlkey=publicity_web&sqlval=GET_QH_WEB_BY_MPI_ID'
+
+        return scrapy.FormRequest(url=url, headers=self.headers_user, method='POST', meta={'qh': item},
+                                  callback=self.cb_get_qh_detail)
+
+    def cb_get_zq_detail(self,response):
+        datas = json.loads(response.body)
+        if datas:
+            for content in datas:
+                item = ZQDetailItem()
+                item['mpiId'] = content['MPI_ID']
+                item['productCode'] = content['CPBM']
+                item['managerName'] = content['GLJG']
+                item['createDate'] = content['SLRQ']
+                item['expiryDate'] = content['DQR']
+                item['investmentType'] = content['TZLX']
+                item['classification'] = 1 if content['SFFJ'] == u'是' else 0
+                item['management'] = content['GLFS']
+                item['establishScale'] = content['CLGM']
+                item['householdsNumber'] = content['CLSCYHS']
+                item['trusteeship'] = content['TGJG']
+                item['sra'] = content['FEDJJG']
+                item['createTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                item['updateTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                yield item
+
+    def cb_get_qh_detail(self,response):
+        datas = json.loads(response.body)
+        if datas:
+            qh_1 = response.meta['qh']
+            for content in datas:
+                item = QHItemdetail()
+                item['mpiId'] = qh_1['mpiId']
+                item['mpiProductCode'] = content['MPI_PRODUCT_CODE']
+                item['aoiName'] = content['AOI_NAME']
+                item['trusteeName'] = content['MPI_TRUSTEE']
+                item['mpiCreateDate'] = content['MPI_CREATE_DATE']
+                item['investmentType'] = content['TZLX']
+                item['raiseScale'] = content['MPI_TOTAL_MONEY']
+                item['structured'] = 1 if content['SFJGH'] == u'是' else 0
+                item['principalsNumber'] = content['MPI_PARTICIPATION_USER']
+                item['createTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                item['updateTimestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                yield item
 
     def getData(self,key,result):
         pattern = re.compile(key + ":?</t[dr]>[^>]*>([^<]+)")
@@ -384,6 +570,7 @@ class Myspider(scrapy.Spider):
             return m[0]
         else:
             return None
+
     def getManageData(self,key,result):
         pattern = re.compile(key + ':?</td>([\\s\\S]*?)(?=</table>)')
         m = pattern.findall(result)
@@ -392,8 +579,11 @@ class Myspider(scrapy.Spider):
             return None
         else:
             pass
+
     def formatDate(self,data):
         return data.replace("\r", "").replace(" ", "").replace("\n","")
+
+
 
 
 

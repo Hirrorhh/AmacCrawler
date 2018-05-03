@@ -2,7 +2,7 @@
 import datetime
 import time
 from AmacCrawler.items import AmacManagerItem, AmacManagerDetailItem,FundItem,FundAccountItem,AmacManagerDetailItem,\
-    FundDetailItem,FundAccountDetailItem,HmdItem
+    FundDetailItem,FundAccountDetailItem,HmdItem,CXDJItem,ZQ,ZQDetailItem,QHItem,QHItemdetail
 from AmacCrawler.mysqlpipelines.databases import DataBases
 
 
@@ -55,4 +55,13 @@ class AmacPipeline(object):
             DataBases.insert_fund_account_detail(item)
         if isinstance(item,HmdItem):
             DataBases.insert_hmd_item(item)
-
+        if isinstance(item,CXDJItem):
+            DataBases.insert_cxdj_item(item)
+        if isinstance(item,ZQ):
+            DataBases.insert_zq_item(item)
+        if isinstance(item,ZQDetailItem):
+            DataBases.insert_zq_detail_item(item)
+        if isinstance(item,QHItem):
+            DataBases.insert_qh_item(item)
+        if isinstance(item,QHItemdetail):
+            DataBases.insert_qh_detail_item(item)
