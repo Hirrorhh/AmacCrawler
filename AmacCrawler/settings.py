@@ -89,9 +89,9 @@ ITEM_PIPELINES = {
 # HTTPCACHE_IGNORE_HTTP_CODES = []
 # HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
 
-MYSQL_HOSTS = 'localhost'
+MYSQL_HOSTS = '192.168.50.237'
 MYSQL_USER = 'root'
-MYSQL_PASSWORD = '123456'
+MYSQL_PASSWORD = ''
 MYSQL_PORT = '3306'
 MYSQL_DB = 'amac'
 
@@ -120,8 +120,8 @@ AMAC_ZQ_DETAIL_URL = 'http://ba.amac.org.cn/pages/amacWeb/user!search.action'
 AMAC_QH_URL = 'http://ba.amac.org.cn/pages/amacWeb/user!list.action'
 #期货详情页
 AMAC_QH_DETAIL_URL = 'http://ba.amac.org.cn/pages/amacWeb/user!search.action'
-LOG_LEVEL= 'DEBUG'
-
+LOG_LEVEL= 'INFO'
+#
 LOG_FILE ='log.txt'
 
 
