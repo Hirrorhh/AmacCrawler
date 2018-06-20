@@ -56,7 +56,7 @@ class AmacManagerDetailItem(scrapy.Item):
     enterpriseNature = scrapy.Field()
     primaryInvestType = scrapy.Field()
     otherBusinessApplications = scrapy.Field()
-    employeesNumbe = scrapy.Field()
+    employeesNumber = scrapy.Field()
     orgUrl = scrapy.Field()
     member = scrapy.Field()
     memberType = scrapy.Field()

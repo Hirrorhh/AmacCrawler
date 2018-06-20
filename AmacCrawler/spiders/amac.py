@@ -130,11 +130,11 @@ class Myspider(scrapy.Spider):
         item['registerCapitalUsd'] = self.getData(u'实缴资本\(万元\)\(美元\)', result).replace(',','') if self.getData(u'实缴资本\(万元\)\(美元\)', result) != None else None
         item['paidCapitalUsd'] = self.getData(u'实缴资本\(万元\)\(美元\)', result).replace(',','') if self.getData(u'实缴资本\(万元\)\(美元\)', result) != None else None
 
-        item['paidCapitalRatio'] =self.getData(u'注册资本实缴比例', result).replace(' ','')
+        item['paidCapitalRatio'] =self.getData(u'注册资本实缴比例', result).replace(' ','').replace(',','') if self.getData(u'注册资本实缴比例', result).replace(' ','') !='' else None
         item['enterpriseNature'] =self.getData(u'企业性质', result)
         item['primaryInvestType'] =self.getData(u'机构类型', result)
         item['otherBusinessApplications'] = self.getData(u'申请的其他业务类型', result)
-        item['employeesNumbe'] = self.getData(u'员工人数', result)
+        item['employeesNumber'] = self.getData(u'员工人数', result).replace(',','') if self.getData(u'员工人数', result) !='' else None
         item['orgUrl'] = self.getData(u'机构网址', result)
         item['member'] =1 if self.getData(u'是否为会员', result)==u'是' else 0
         item['memberType'] = self.getData(u'当前会员类型', result)
@@ -245,7 +245,7 @@ class Myspider(scrapy.Spider):
             item['managerType'] = 3
 
         item['trusteeName']=contents[7].get_text()
-        item['mainInvestment']=None
+        item['mainInvestment']=contents[10].get_text() if contents[10].get_text() !='' else None
         workingState=contents[11].get_text()
         #print workingState
         if workingState ==u'正在运作':
@@ -582,7 +582,7 @@ class Myspider(scrapy.Spider):
             pass
 
     def formatDate(self,data):
-        return data.replace("\r", "").replace(" ", "").replace("\n","")
+        return data.replace("\r", "").replace(" ", "").replace("\n","").replace("\t","")
 
 
 

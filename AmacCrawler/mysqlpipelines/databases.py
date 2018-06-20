@@ -78,7 +78,7 @@ class DataBases:
             'enterprise_nature': item['enterpriseNature'],
             'primary_invest_type': item['primaryInvestType'],
             'other_business_applications': item['otherBusinessApplications'],
-            'employees_number': item['employeesNumbe'],
+            'employees_number': item['employeesNumber'],
             'org_url': item['orgUrl'],
             'member': item['member'],
             'member_type': item['memberType'],
@@ -113,6 +113,7 @@ class DataBases:
             mysql_connector.commit()
         except Exception, e:
             logging.info('insert_amac_manager_detail: 爬取个人详情页出错')
+            logging.info(item)
             logging.info('str(e):\t\t', str(e))
             logging.info('traceback.print_exc():', traceback.print_exc())
 
@@ -144,6 +145,7 @@ class DataBases:
             mysql_connector.commit()
         except Exception, e:
             logging.info('insert_amac_fund: 插入基金出错')
+            logging.info(item)
             logging.info('str(e):\t\t', str(e))
             logging.info('traceback.print_exc():', traceback.print_exc())
 
@@ -172,6 +174,7 @@ class DataBases:
             mysql_connector.commit()
         except Exception, e:
             logging.info('insert_amac_fund: 爬取-插入基金账户出错')
+            logging.info(item)
             logging.info('str(e):\t\t', str(e))
             logging.info('traceback.print_exc():', traceback.print_exc())
 
@@ -208,6 +211,7 @@ class DataBases:
             mysql_connector.commit()
         except Exception, e:
             logging.info('insert_amac_fund: 爬取-插入基金详情页面出错')
+            logging.info(item)
             logging.info('str(e):\t\t', str(e))
             logging.info('traceback.print_exc():', traceback.print_exc())
 
@@ -239,6 +243,7 @@ class DataBases:
             mysql_connector.commit()
         except Exception, e:
             logging.info('insert_fund_account_detail: 爬取-插入基金账户详情页面出错')
+            logging.info(item)
             logging.info('str(e):\t\t', str(e))
             logging.info('traceback.print_exc():', traceback.print_exc())
 
@@ -261,6 +266,7 @@ class DataBases:
             mysql_connector.commit()
         except Exception, e:
             logging.info('insert_hmd_item: 爬取-黑名单出错')
+            logging.info(item)
             logging.info('str(e):\t\t', str(e))
             logging.info('traceback.print_exc():', traceback.print_exc())
 
@@ -282,6 +288,7 @@ class DataBases:
             mysql_connector.commit()
         except Exception, e:
             logging.info('insert_cxdj_item: 爬取-撤销登记名单出错')
+            logging.info(item)
             logging.info('str(e):\t\t', str(e))
             logging.info('traceback.print_exc():', traceback.print_exc())
 
@@ -303,6 +310,7 @@ class DataBases:
             mysql_connector.commit()
         except Exception, e:
             logging.info('insert_cxdj_item: 爬取-撤销登记名单出错')
+            logging.info(item)
             logging.info('str(e):\t\t', str(e))
             logging.info('traceback.print_exc():', traceback.print_exc())
 
@@ -329,6 +337,7 @@ class DataBases:
             mysql_connector.commit()
         except Exception, e:
             logging.info('insert_zq_item: 爬取-证券类名单出错')
+            logging.info(item)
             logging.info('str(e):\t\t', str(e))
             logging.info('traceback.print_exc():', traceback.print_exc())
 
@@ -362,6 +371,7 @@ class DataBases:
             mysql_connector.commit()
         except Exception, e:
             logging.info('insert_zq_item: 爬取-证券详情出错')
+            logging.info(item)
             logging.info('str(e):\t\t', str(e))
             logging.info('traceback.print_exc():', traceback.print_exc())
 
@@ -389,6 +399,7 @@ class DataBases:
             mysql_connector.commit()
         except Exception, e:
             logging.info('insert_hq_item: 爬取-证券详情出错')
+            logging.info(item)
             logging.info('str(e):\t\t', str(e))
             logging.info('traceback.print_exc():', traceback.print_exc())
 
@@ -419,5 +430,6 @@ class DataBases:
             mysql_connector.commit()
         except Exception, e:
             logging.info('insert_hq_item: 爬取-期货详情出错')
+            logging.info(item)
             logging.info('str(e):\t\t', str(e))
             logging.info('traceback.print_exc():', traceback.print_exc())
